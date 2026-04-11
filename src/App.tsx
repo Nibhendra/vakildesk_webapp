@@ -25,6 +25,12 @@ function App() {
             <h2 className="text-2xl text-slate-500 font-medium">Financials (Coming Soon)</h2>
           </div>
         )}
+
+        {activeTab === 'settings' && (
+          <div className="p-8 flex justify-center items-center h-full">
+            <h2 className="text-2xl text-slate-500 font-medium">Settings (Coming Soon)</h2>
+          </div>
+        )}
       </main>
 
       {isAddModalOpen && <AddCaseModal onClose={() => setIsAddModalOpen(false)} />}

@@ -45,9 +45,17 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-slate-700/50 mt-auto">
-        <button className="w-full flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-slate-200 transition-colors">
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className={clsx(
+            "w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200",
+            activeTab === 'settings'
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30" 
+              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+          )}
+        >
           <Settings size={20} />
-          <span>Settings</span>
+          <span className="font-medium">Settings</span>
         </button>
       </div>
     </div>
