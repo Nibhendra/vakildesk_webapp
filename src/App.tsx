@@ -5,20 +5,22 @@ import { CaseVault } from './components/CaseVault';
 import { Financials } from './components/Financials';
 import { Settings } from './components/Settings';
 import { AddCaseModal } from './components/AddCaseModal';
+import { useTheme } from './hooks/useTheme';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="flex bg-slate-900 text-slate-50 h-[100dvh] w-full overflow-hidden font-sans relative">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="flex h-[100dvh] w-full overflow-hidden font-sans relative theme-bg theme-text">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} onToggleTheme={toggleTheme} />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {activeTab === 'dashboard' && <Dashboard onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'vault' && <CaseVault onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'financials' && <Financials />}
-        {activeTab === 'settings' && <Settings />}
+        {activeTab === 'settings' && <Settings theme={theme} onToggleTheme={toggleTheme} />}
       </main>
 
       {isAddModalOpen && <AddCaseModal onClose={() => setIsAddModalOpen(false)} />}

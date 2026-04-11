@@ -1,23 +1,69 @@
 @import "tailwindcss";
 
-@theme {
-  --color-primary: #3b82f6;      /* Blue 500 */
-  --color-primary-dark: #2563eb; /* Blue 600 */
-  --color-accent: #f59e0b;       /* Amber 500 */
-  --color-bg: #0f172a;           /* Slate 900 */
-  --color-surface: #1e293b;      /* Slate 800 */
-  --color-text: #f8fafc;         /* Slate 50 */
-  --color-text-muted: #94a3b8;   /* Slate 400 */
+/* ── Dark Theme (default) ── */
+:root,
+:root.dark {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #273549;
+  --border: rgba(71, 85, 105, 0.5);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --card-bg: rgba(30, 41, 59, 0.8);
 }
 
+/* ── Light Theme ── */
+:root.light {
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: rgba(203, 213, 225, 0.8);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --card-bg: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Base Reset ── */
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-50 antialiased h-screen overflow-hidden;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
+/* ── Glass Panel Utility ── */
 @layer utilities {
   .glass-panel {
-    @apply bg-slate-800/80 backdrop-blur-md border border-slate-700/50 shadow-xl rounded-xl;
+    background-color: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    border-radius: 0.75rem;
+  }
+
+  .theme-bg { background-color: var(--bg); }
+  .theme-surface { background-color: var(--surface); }
+  .theme-surface-2 { background-color: var(--surface-2); }
+  .theme-border { border-color: var(--border); }
+  .theme-text { color: var(--text); }
+  .theme-muted { color: var(--text-muted); }
+  .theme-dim { color: var(--text-dim); }
+  .theme-input {
+    background-color: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .theme-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+  }
+  .theme-input::placeholder {
+    color: var(--text-dim);
   }
 }
