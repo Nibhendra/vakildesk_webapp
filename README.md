@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# VakilDesk Web ⚖️
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, high-performance practice management platform designed explicitly for advocates. VakilDesk integrates AI-powered OCR to seamlessly extract case details from uploaded documents, streamlining case vault building and management.
 
-Currently, two official plugins are available:
+![VakilDesk Web UI](./src/assets/hero.png) *(Preview Placeholder)*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Key Features
+- **Smart Drop OCR:** Instantly parse case documents (images) via drag-and-drop. Automatically extracts Case Title, Case Number, and Hearing Dates using Google Cloud Vision API.
+- **Sectioned Dashboard:** Cases are automatically grouped by Court type (Supreme Court, High Court, District Court, etc.).
+- **Urgent UI System:** Automatically visualizes and emphasizes active cases with hearings scheduled within the next 48 hours using dynamic warning badges.
+- **Financial Snapshot:** Tracks uncollected aggregate revenues dynamically to help you stay on top of pending dues.
 
-## React Compiler
+## 🛠️ Tech Stack
+- **Frontend Framework:** React 18, Vite
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4, Lucide React (Icons)
+- **State Management:** Zustand
+- **Database/Cloud:** Firebase Firestore
+- **AI/Machine Learning:** Google Cloud Vision API Integrations
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Follow these steps to establish your local development environment.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 1. Prerequisites
+- Node.js (v18+)
+- A Firebase Project (for Firestore database)
+- A Google Cloud Platform (GCP) Project with the **Cloud Vision API** enabled.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Installation
+Clone the repository and install the dependencies:
+```bash
+git clone https://github.com/Nibhendra/vakildesk_webapp.git
+cd vakildesk_webapp
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 3. Environment Variables
+You need to configure your API keys. Copy the `.env.example` file and create a new `.env` file:
+```bash
+cp .env.example .env
 ```
+Open `.env` and fill in your Firebase configuration keys and your Google Cloud Vision API key:
+```env
+VITE_FIREBASE_API_KEY="your_firebase_api_key_here"
+VITE_FIREBASE_AUTH_DOMAIN="your_firebase_auth_domain"
+VITE_FIREBASE_PROJECT_ID="your_firebase_project_id"
+VITE_FIREBASE_STORAGE_BUCKET="your_firebase_storage_bucket"
+VITE_FIREBASE_MESSAGING_SENDER_ID="your_firebase_messaging_sender_id"
+VITE_FIREBASE_APP_ID="your_firebase_app_id"
+VITE_GOOGLE_VISION_API_KEY="your_google_cloud_vision_api_key"
+```
+
+### 4. Running the Development Server
+Start the Vite development server:
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
+
+## 📁 Project Structure
+- `/src/components` - React visual components (`Sidebar`, `Dashboard`, `SmartDropZone`, etc.)
+- `/src/services` - Interactions with external APIs (`caseService.ts` for Firestore, `ocrService.ts` for Google Cloud Vision API)
+- `/src/store` - Local state machine logic (`useCaseStore.ts`)
+- `/src/types` - TypeScript interfaces guaranteeing structural code safety.
+
+---
+*Built with ❤️ for Advocates & Lawyers.*
