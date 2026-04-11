@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import type { Case } from '../types';
 
 export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
-  const { cases, fetchCases, loading } = useCaseStore();
+  const { cases, fetchCases, loading, error } = useCaseStore();
 
   useEffect(() => {
     fetchCases();
@@ -37,6 +37,18 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
 
   if (loading) {
     return <div className="p-8 flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 flex justify-center items-center h-full">
+        <div className="bg-red-500/10 border border-red-500 text-red-500 p-6 rounded-xl max-w-lg text-center">
+          <h3 className="text-xl font-bold mb-2">Failed to load Dashboard</h3>
+          <p>{error}</p>
+          <p className="mt-4 text-sm text-red-400">Please make sure your Firebase API keys are correctly configured in the .env file.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
