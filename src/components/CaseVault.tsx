@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { Search, Briefcase, Trash2, Calendar, Scale, Filter } from 'lucide-react';
+import { Search, Briefcase, Trash2, Calendar, Scale, Filter, Pencil } from 'lucide-react';
 import clsx from 'clsx';
 import type { Case } from '../types';
+import { EditCaseModal } from './EditCaseModal';
 
 const COURTS = ['All', 'Supreme Court', 'High Court', 'District Court', 'Tribunal'];
 const STATUSES = ['All', 'active', 'closed'];
@@ -13,6 +14,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
   const [courtFilter, setCourtFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingCase, setEditingCase] = useState<Case | null>(null);
 
   useEffect(() => {
     fetchCases();
@@ -30,6 +32,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
   }, [cases, search, courtFilter, statusFilter]);
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Delete this case? This action cannot be undone.')) return;
     setDeletingId(id);
     await deleteCase(id);
     setDeletingId(null);
@@ -47,7 +50,8 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
         </div>
         <button
           onClick={onAddCase}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all font-medium"
+          aria-label="Add new case"
+          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all font-medium cursor-pointer"
         >
           <Briefcase size={18} />
           <span>Add Case</span>
@@ -71,7 +75,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
           <select
             value={courtFilter}
             onChange={(e) => setCourtFilter(e.target.value)}
-            className="bg-transparent text-slate-300 py-2.5 focus:outline-none text-sm"
+            className="bg-transparent text-slate-300 py-2.5 focus:outline-none text-sm cursor-pointer"
           >
             {COURTS.map((c) => <option key={c} value={c} className="bg-slate-800">{c}</option>)}
           </select>
@@ -80,7 +84,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-transparent text-slate-300 py-2.5 focus:outline-none text-sm"
+            className="bg-transparent text-slate-300 py-2.5 focus:outline-none text-sm cursor-pointer"
           >
             {STATUSES.map((s) => <option key={s} value={s} className="bg-slate-800 capitalize">{s === 'All' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
@@ -121,7 +125,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
                 <th className="text-left px-5 py-3 hidden lg:table-cell">Court</th>
                 <th className="text-left px-5 py-3">Next Hearing</th>
                 <th className="text-left px-5 py-3">Status</th>
-                <th className="text-left px-5 py-3"></th>
+                <th className="text-left px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
@@ -144,22 +148,40 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
                       {c.status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => c.id && handleDelete(c.id)}
-                      disabled={deletingId === c.id}
-                      className="p-2 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      {deletingId === c.id
-                        ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-red-400" />
-                        : <Trash2 size={16} />}
-                    </button>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setEditingCase(c)}
+                        aria-label={`Edit ${c.title}`}
+                        className="p-2 text-slate-400 hover:text-blue-400 transition-colors cursor-pointer rounded-lg hover:bg-blue-500/10"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        onClick={() => c.id && handleDelete(c.id)}
+                        disabled={deletingId === c.id}
+                        aria-label={`Delete ${c.title}`}
+                        className="p-2 text-slate-400 hover:text-red-400 transition-colors cursor-pointer rounded-lg hover:bg-red-500/10"
+                      >
+                        {deletingId === c.id
+                          ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-red-400" />
+                          : <Trash2 size={15} />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingCase && (
+        <EditCaseModal
+          caseData={editingCase}
+          onClose={() => setEditingCase(null)}
+        />
       )}
     </div>
   );

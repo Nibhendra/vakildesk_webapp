@@ -1,13 +1,15 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
 import { FinancialSnapshot } from './FinancialSnapshot';
-import { Calendar, MapPin, Scale, Plus } from 'lucide-react';
+import { EditCaseModal } from './EditCaseModal';
+import { Calendar, MapPin, Scale, Plus, Pencil } from 'lucide-react';
 import { differenceInHours, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import type { Case } from '../types';
 
 export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
   const { cases, fetchCases, loading } = useCaseStore();
+  const [editingCase, setEditingCase] = useState<Case | null>(null);
 
   useEffect(() => {
     fetchCases();
@@ -45,6 +47,7 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
 
 
   return (
+    <>
     <div className="flex-1 overflow-y-auto p-8 relative">
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -79,10 +82,10 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
                 const isUrgent = hoursUntil >= 0 && hoursUntil <= 48;
 
                 return (
-                  <div 
-                    key={caseItem.id} 
+                  <div
+                    key={caseItem.id}
                     className={clsx(
-                      "glass-panel p-5 relative transition-all hover:scale-[1.02]",
+                      "glass-panel p-5 relative transition-all hover:scale-[1.02] group",
                       isUrgent ? "border-red-500/50 shadow-red-500/10" : ""
                     )}
                   >
@@ -91,10 +94,19 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
                         URGENT
                       </div>
                     )}
-                    
-                    <h4 className="font-bold text-lg text-slate-100 mb-1 truncate">{caseItem.title}</h4>
+
+                    {/* Edit button */}
+                    <button
+                      onClick={() => setEditingCase(caseItem)}
+                      aria-label={`Edit ${caseItem.title}`}
+                      className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-blue-500/10 cursor-pointer"
+                    >
+                      <Pencil size={14} />
+                    </button>
+
+                    <h4 className="font-bold text-lg text-slate-100 mb-1 truncate pr-8">{caseItem.title}</h4>
                     <p className="text-sm text-slate-400 font-mono mb-4">{caseItem.caseNumber}</p>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center text-sm text-slate-300">
                         <Calendar size={16} className="mr-2 text-blue-400" />
@@ -120,5 +132,14 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
         )}
       </div>
     </div>
+
+    {/* Edit Modal */}
+    {editingCase && (
+      <EditCaseModal
+        caseData={editingCase}
+        onClose={() => setEditingCase(null)}
+      />
+    )}
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { CaseVault } from './components/CaseVault';
 import { Financials } from './components/Financials';
+import { Settings } from './components/Settings';
 import { AddCaseModal } from './components/AddCaseModal';
 
 function App() {
@@ -17,11 +18,7 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'vault' && <CaseVault onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'financials' && <Financials />}
-        {activeTab === 'settings' && (
-          <div className="p-8 flex justify-center items-center h-full">
-            <h2 className="text-2xl text-slate-500 font-medium">Settings (Coming Soon)</h2>
-          </div>
-        )}
+        {activeTab === 'settings' && <Settings />}
       </main>
 
       {isAddModalOpen && <AddCaseModal onClose={() => setIsAddModalOpen(false)} />}
