@@ -7,6 +7,7 @@ interface FormErrors {
   title?: string;
   caseNumber?: string;
   nextHearingDate?: string;
+  feesPaid?: string;
 }
 
 interface EditCaseModalProps {
@@ -24,6 +25,7 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
     if (!formData.title?.trim()) newErrors.title = 'Case Title is required.';
     if (!formData.caseNumber?.trim()) newErrors.caseNumber = 'Case Number is required.';
     if (!formData.nextHearingDate) newErrors.nextHearingDate = 'Next Hearing Date is required.';
+    if (formData.feesPaid > formData.totalFees) newErrors.feesPaid = 'Fees Paid cannot exceed Total Fees.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -159,10 +161,16 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
               id="edit-fees-paid"
               type="number"
               min="0"
+              max={formData.totalFees}
               value={formData.feesPaid}
-              onChange={e => setFormData({ ...formData, feesPaid: Number(e.target.value) })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+              onChange={e => {
+                const val = Number(e.target.value);
+                setFormData({ ...formData, feesPaid: val });
+                setErrors(p => ({ ...p, feesPaid: val > formData.totalFees ? 'Fees Paid cannot exceed Total Fees.' : undefined }));
+              }}
+              className={inputClass(!!errors.feesPaid)}
             />
+            {errors.feesPaid && <p className="flex items-center gap-1 text-xs text-red-400"><AlertCircle size={12} />{errors.feesPaid}</p>}
           </div>
         </div>
 

@@ -13,11 +13,13 @@ export function Financials() {
   const stats = useMemo(() => {
     const activeCases = cases.filter(c => c.status === 'active');
     const totalFees = cases.reduce((acc, c) => acc + c.totalFees, 0);
-    const totalPaid = cases.reduce((acc, c) => acc + c.feesPaid, 0);
-    const totalPending = totalFees - totalPaid;
-    const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
-    const pendingCases = activeCases.filter(c => c.feesPaid < c.totalFees);
-    const fullyPaid = cases.filter(c => c.feesPaid >= c.totalFees);
+    const totalPaid = cases.reduce((acc, c) => acc + Math.min(c.feesPaid, c.totalFees), 0);
+    const totalPending = Math.max(0, totalFees - totalPaid);
+    const collectionRate = totalFees > 0 ? Math.min(100, Math.round((totalPaid / totalFees) * 100)) : 0;
+    // Fully paid = has fees AND feesPaid >= totalFees
+    const fullyPaid = cases.filter(c => c.totalFees > 0 && c.feesPaid >= c.totalFees);
+    // Pending = active, has fees, not fully paid
+    const pendingCases = activeCases.filter(c => c.totalFees > 0 && c.feesPaid < c.totalFees);
     return { totalFees, totalPaid, totalPending, collectionRate, pendingCases, fullyPaid };
   }, [cases]);
 
@@ -119,9 +121,9 @@ export function Financials() {
         </div>
         <div className="divide-y divide-slate-700/30">
           {cases.map((c) => {
-            const pending = c.totalFees - c.feesPaid;
-            const rate = c.totalFees > 0 ? Math.round((c.feesPaid / c.totalFees) * 100) : 0;
-            const isPaid = pending <= 0;
+            const pending = Math.max(0, c.totalFees - c.feesPaid);
+            const rate = c.totalFees > 0 ? Math.min(100, Math.round((c.feesPaid / c.totalFees) * 100)) : 0;
+            const isPaid = c.totalFees > 0 && pending <= 0;
             return (
               <div key={c.id} className="px-6 py-4 hover:bg-slate-700/10 transition-colors">
                 <div className="flex justify-between items-start mb-2">

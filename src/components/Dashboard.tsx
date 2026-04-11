@@ -16,8 +16,19 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
   }, [fetchCases]);
 
   const totalPending = useMemo(() => {
-    return cases.reduce((acc, curr) => acc + (curr.totalFees - curr.feesPaid), 0);
+    // Only count active cases for the financial snapshot
+    return cases
+      .filter(c => c.status === 'active')
+      .reduce((acc, curr) => acc + Math.max(0, curr.totalFees - curr.feesPaid), 0);
   }, [cases]);
+
+  // Read urgency preference from localStorage
+  const notifyUrgent = useMemo(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('vakildesk_prefs') || '{}');
+      return prefs.notifyUrgent !== false; // default true
+    } catch { return true; }
+  }, []);
 
   // Group and sort cases
   const groupedCases = useMemo(() => {
@@ -86,10 +97,10 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
                     key={caseItem.id}
                     className={clsx(
                       "glass-panel p-5 relative transition-all hover:scale-[1.02] group",
-                      isUrgent ? "border-red-500/50 shadow-red-500/10" : ""
+                      isUrgent && notifyUrgent ? "border-red-500/50 shadow-red-500/10" : ""
                     )}
                   >
-                    {isUrgent && (
+                    {isUrgent && notifyUrgent && (
                       <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-red-400 animate-pulse">
                         URGENT
                       </div>

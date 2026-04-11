@@ -8,6 +8,7 @@ interface FormErrors {
   title?: string;
   caseNumber?: string;
   nextHearingDate?: string;
+  feesPaid?: string;
 }
 
 export function AddCaseModal({ onClose }: { onClose: () => void }) {
@@ -35,6 +36,9 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
     }
     if (!formData.nextHearingDate) {
       newErrors.nextHearingDate = 'Next Hearing Date is required.';
+    }
+    if ((formData.feesPaid ?? 0) > (formData.totalFees ?? 0)) {
+      newErrors.feesPaid = 'Fees Paid cannot exceed Total Fees.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -219,10 +223,24 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
                   id="fees-paid"
                   type="number"
                   min="0"
+                  max={formData.totalFees}
                   value={formData.feesPaid}
-                  onChange={e => setFormData({ ...formData, feesPaid: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    setFormData({ ...formData, feesPaid: val });
+                    if (val > (formData.totalFees ?? 0)) {
+                      setErrors(prev => ({ ...prev, feesPaid: 'Fees Paid cannot exceed Total Fees.' }));
+                    } else {
+                      setErrors(prev => ({ ...prev, feesPaid: undefined }));
+                    }
+                  }}
+                  className={inputClass(!!errors.feesPaid)}
                 />
+                {errors.feesPaid && (
+                  <p className="flex items-center gap-1 text-xs text-red-400 mt-1">
+                    <AlertCircle size={12} /> {errors.feesPaid}
+                  </p>
+                )}
               </div>
             </div>
 
