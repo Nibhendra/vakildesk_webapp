@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6;      /* Blue 500 */
+  --color-primary-dark: #2563eb; /* Blue 600 */
+  --color-accent: #f59e0b;       /* Amber 500 */
+  --color-bg: #0f172a;           /* Slate 900 */
+  --color-surface: #1e293b;      /* Slate 800 */
+  --color-text: #f8fafc;         /* Slate 50 */
+  --color-text-muted: #94a3b8;   /* Slate 400 */
+}
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-50 antialiased h-screen overflow-hidden;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-slate-800/80 backdrop-blur-md border border-slate-700/50 shadow-xl rounded-xl;
+  }
+}
