@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
 import { X, Save, AlertCircle } from 'lucide-react';
 import type { Case } from '../types';
+import { todayISO } from '../utils/dateFormat';
 
 interface FormErrors {
   title?: string;
@@ -24,7 +25,11 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
     const newErrors: FormErrors = {};
     if (!formData.title?.trim()) newErrors.title = 'Case Title is required.';
     if (!formData.caseNumber?.trim()) newErrors.caseNumber = 'Case Number is required.';
-    if (!formData.nextHearingDate) newErrors.nextHearingDate = 'Next Hearing Date is required.';
+    if (!formData.nextHearingDate) {
+      newErrors.nextHearingDate = 'Next Hearing Date is required.';
+    } else if (formData.nextHearingDate < todayISO()) {
+      newErrors.nextHearingDate = 'Hearing date cannot be in the past.';
+    }
     if (formData.feesPaid > formData.totalFees) newErrors.feesPaid = 'Fees Paid cannot exceed Total Fees.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -119,6 +124,7 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
             <input
               id="edit-date"
               type="date"
+              min={todayISO()}
               value={formData.nextHearingDate}
               onChange={e => { setFormData({ ...formData, nextHearingDate: e.target.value }); setErrors(p => ({ ...p, nextHearingDate: undefined })); }}
               className={inputClass(!!errors.nextHearingDate)}
@@ -148,8 +154,9 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
               id="edit-total-fees"
               type="number"
               min="0"
+              step="1"
               value={formData.totalFees}
-              onChange={e => setFormData({ ...formData, totalFees: Number(e.target.value) })}
+              onChange={e => setFormData({ ...formData, totalFees: Math.max(0, Number(e.target.value)) })}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>

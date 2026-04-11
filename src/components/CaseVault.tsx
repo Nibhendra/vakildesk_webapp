@@ -4,6 +4,7 @@ import { Search, Briefcase, Trash2, Calendar, Scale, Filter, Pencil } from 'luci
 import clsx from 'clsx';
 import type { Case } from '../types';
 import { EditCaseModal } from './EditCaseModal';
+import { formatHearingDate } from '../utils/dateFormat';
 
 const COURTS = ['All', 'Supreme Court', 'High Court', 'District Court', 'Tribunal'];
 const STATUSES = ['All', 'active', 'closed'];
@@ -137,7 +138,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
                   <td className="px-5 py-4 text-slate-300">
                     <span className="flex items-center space-x-1.5">
                       <Calendar size={13} className="text-blue-400 shrink-0" />
-                      <span>{new Date(c.nextHearingDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span>
+                      <span>{formatHearingDate(c.nextHearingDate)}</span>
                     </span>
                   </td>
                   <td className="px-5 py-4">

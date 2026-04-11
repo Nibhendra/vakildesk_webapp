@@ -3,6 +3,7 @@ import { SmartDropZone } from './SmartDropZone';
 import { useCaseStore } from '../store/useCaseStore';
 import { X, Save, AlertCircle } from 'lucide-react';
 import type { Case } from '../types';
+import { todayISO } from '../utils/dateFormat';
 
 interface FormErrors {
   title?: string;
@@ -36,6 +37,15 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
     }
     if (!formData.nextHearingDate) {
       newErrors.nextHearingDate = 'Next Hearing Date is required.';
+    } else if (formData.nextHearingDate < todayISO()) {
+      newErrors.nextHearingDate = 'Hearing date cannot be in the past.';
+    }
+    if ((formData.totalFees ?? 0) < 0) {
+      // clamp — handled by min="0" on input, but guard here too
+      setFormData(prev => ({ ...prev, totalFees: 0 }));
+    }
+    if ((formData.feesPaid ?? 0) < 0) {
+      setFormData(prev => ({ ...prev, feesPaid: 0 }));
     }
     if ((formData.feesPaid ?? 0) > (formData.totalFees ?? 0)) {
       newErrors.feesPaid = 'Fees Paid cannot exceed Total Fees.';
@@ -176,6 +186,7 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
                 <input
                   id="hearing-date"
                   type="date"
+                  min={todayISO()}
                   value={formData.nextHearingDate}
                   onChange={e => { setFormData({ ...formData, nextHearingDate: e.target.value }); setErrors(prev => ({ ...prev, nextHearingDate: undefined })); }}
                   className={inputClass(!!errors.nextHearingDate)}
@@ -210,8 +221,9 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
                   id="total-fees"
                   type="number"
                   min="0"
+                  step="1"
                   value={formData.totalFees}
-                  onChange={e => setFormData({ ...formData, totalFees: Number(e.target.value) })}
+                  onChange={e => setFormData({ ...formData, totalFees: Math.max(0, Number(e.target.value)) })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>

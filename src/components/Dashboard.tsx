@@ -6,6 +6,7 @@ import { Calendar, MapPin, Scale, Plus, Pencil } from 'lucide-react';
 import { differenceInHours, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import type { Case } from '../types';
+import { formatHearingDate } from '../utils/dateFormat';
 
 export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
   const { cases, fetchCases, loading } = useCaseStore();
@@ -121,7 +122,7 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
                     <div className="space-y-3">
                       <div className="flex items-center text-sm text-slate-300">
                         <Calendar size={16} className="mr-2 text-blue-400" />
-                        <span>{new Date(caseItem.nextHearingDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span>
+                        <span>{formatHearingDate(caseItem.nextHearingDate)}</span>
                       </div>
                       <div className="flex items-center text-sm text-slate-300">
                         <MapPin size={16} className="mr-2 text-blue-400" />
