@@ -8,9 +8,9 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'vault', label: 'Case Vault', icon: Briefcase },
-    { id: 'financials', label: 'Financials', icon: Wallet },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, ariaLabel: 'Go to Dashboard' },
+    { id: 'vault', label: 'Case Vault', icon: Briefcase, ariaLabel: 'Access Case Vault' },
+    { id: 'financials', label: 'Financials', icon: Wallet, ariaLabel: 'View Financials' },
   ];
 
   return (
@@ -22,7 +22,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         <p className="text-sm text-slate-400 mt-1">Practice Management</p>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 px-4 space-y-2" role="navigation" aria-label="Main navigation">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -30,14 +30,17 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              aria-label={tab.ariaLabel}
+              aria-current={isActive ? 'page' : undefined}
+              title={tab.label}
               className={clsx(
-                "w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200",
-                isActive 
-                  ? "bg-blue-600/20 text-blue-400 border border-blue-500/30" 
-                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                'w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer',
+                isActive
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               )}
             >
-              <Icon size={20} />
+              <Icon size={20} aria-hidden="true" />
               <span className="font-medium">{tab.label}</span>
             </button>
           );
@@ -45,16 +48,19 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-slate-700/50 mt-auto">
-        <button 
+        <button
           onClick={() => setActiveTab('settings')}
+          aria-label="Open Settings"
+          aria-current={activeTab === 'settings' ? 'page' : undefined}
+          title="Settings"
           className={clsx(
-            "w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200",
+            'w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer',
             activeTab === 'settings'
-              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30" 
-              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
           )}
         >
-          <Settings size={20} />
+          <Settings size={20} aria-hidden="true" />
           <span className="font-medium">Settings</span>
         </button>
       </div>

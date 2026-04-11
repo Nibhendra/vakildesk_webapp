@@ -19,8 +19,12 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
 
   // Group and sort cases
   const groupedCases = useMemo(() => {
-    const activeCases = cases.filter(c => c.status === 'active');
-    
+    const activeCases = cases.filter(c => {
+      // Guard against malformed records: require title, caseNumber, and a valid date
+      const isValidDate = c.nextHearingDate && !isNaN(new Date(c.nextHearingDate).getTime());
+      return c.status === 'active' && c.title?.trim() && c.caseNumber?.trim() && isValidDate;
+    });
+
     // Sort all cases by nearest date first
     activeCases.sort((a, b) => new Date(a.nextHearingDate).getTime() - new Date(b.nextHearingDate).getTime());
 
