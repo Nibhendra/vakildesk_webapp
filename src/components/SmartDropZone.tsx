@@ -66,7 +66,7 @@ export function SmartDropZone({ onDataParsed }: SmartDropZoneProps) {
           <Loader2 className="animate-spin text-blue-500" size={48} />
           <div>
             <p className="text-slate-200 font-medium">AI is reading your document...</p>
-            <p className="text-slate-500 text-xs mt-1">Extracting case details. Takes 5–15 seconds.</p>
+            <p className="text-slate-500 text-xs mt-1">Takes 5–20 seconds. Auto-retrying if server is busy.</p>
           </div>
         </div>
       ) : (
