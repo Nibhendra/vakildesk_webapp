@@ -2,9 +2,10 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, FileText, Loader2 } from 'lucide-react';
 import { ocrService } from '../services/ocrService';
+import { compressDocumentForOCR } from '../utils/fileUtils';
 
 interface SmartDropZoneProps {
-  onDataParsed: (data: { title: string; caseNumber: string; date: string }) => void;
+  onDataParsed: (data: { title: string; caseNumber: string; date: string; court: string; clientName: string }) => void;
 }
 
 const hasOcrKey =
@@ -23,26 +24,13 @@ export function SmartDropZone({ onDataParsed }: SmartDropZoneProps) {
     setError(null);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = reader.result as string;
-          const text = await ocrService.extractTextFromImage(base64);
-          const parsedData = ocrService.parseTextToCaseData(text);
-          onDataParsed(parsedData);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to process document');
-        } finally {
-          setLoading(false);
-        }
-      };
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setLoading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setError('An error occurred during file process');
+      const compressedBase64 = await compressDocumentForOCR(file);
+      const text = await ocrService.extractTextFromImage(compressedBase64);
+      const parsedData = ocrService.parseTextToCaseData(text);
+      onDataParsed(parsedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during file process');
+    } finally {
       setLoading(false);
     }
   }, [onDataParsed]);

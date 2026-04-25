@@ -54,12 +54,14 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleDataParsed = (data: { title: string; caseNumber: string; date: string }) => {
+  const handleDataParsed = (data: { title: string; caseNumber: string; date: string; court: string; clientName: string }) => {
     setFormData(prev => ({
       ...prev,
       title: data.title || prev.title,
       caseNumber: data.caseNumber || prev.caseNumber,
       nextHearingDate: data.date || prev.nextHearingDate,
+      court: data.court || prev.court,
+      clientName: data.clientName || prev.clientName,
     }));
     setErrors({});
     setStep(2);

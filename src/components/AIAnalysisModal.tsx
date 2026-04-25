@@ -4,6 +4,7 @@ import { X, Sparkles, UploadCloud, Loader2, Save, FileText } from 'lucide-react'
 import type { Case } from '../types';
 import { useCaseStore } from '../store/useCaseStore';
 import { ocrService } from '../services/ocrService';
+import { compressDocumentForOCR } from '../utils/fileUtils';
 
 interface AIAnalysisModalProps {
   caseData: Case;
@@ -26,25 +27,12 @@ export function AIAnalysisModal({ caseData, onClose }: AIAnalysisModalProps) {
     setSummary('');
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = reader.result as string;
-          const result = await ocrService.summarizeLegalDocument(base64);
-          setSummary(result);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to analyze document');
-        } finally {
-          setLoading(false);
-        }
-      };
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setLoading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setError('An error occurred during file process');
+      const compressedBase64 = await compressDocumentForOCR(file);
+      const result = await ocrService.summarizeLegalDocument(compressedBase64);
+      setSummary(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during file process');
+    } finally {
       setLoading(false);
     }
   }, []);

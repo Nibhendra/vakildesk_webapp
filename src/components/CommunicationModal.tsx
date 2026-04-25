@@ -1,4 +1,4 @@
-import { X, MessageCircle, FileText, Download } from 'lucide-react';
+import { X, MessageCircle, FileText } from 'lucide-react';
 import type { Case } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
