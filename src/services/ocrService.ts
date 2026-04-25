@@ -75,9 +75,24 @@ export const ocrService = {
         throw new Error('AI quota limit reached. Please wait ~1 minute and try again.');
       }
 
+      // 503 = Google server overload ("high demand") — retry automatically
+      if (response.status === 503) {
+        if (attempt < MAX_RETRIES) {
+          await sleep(10000); // 10s wait for server to recover
+          continue;
+        }
+        throw new Error('Google AI servers are overloaded right now. Please wait 30 seconds and try again.');
+      }
+
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
-        throw new Error(`Gemini API error: ${errBody?.error?.message ?? `HTTP ${response.status}`}`);
+        const msg = errBody?.error?.message ?? `HTTP ${response.status}`;
+        // Also retry on "high demand" messages inside a 200 response
+        if (msg.toLowerCase().includes('high demand') && attempt < MAX_RETRIES) {
+          await sleep(10000);
+          continue;
+        }
+        throw new Error(`Gemini API error: ${msg}`);
       }
 
       const data = await response.json();
