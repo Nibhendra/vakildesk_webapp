@@ -26,3 +26,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Debug / scratch scripts (may contain secrets)
+debug_*.mjs
+debug_*.js
