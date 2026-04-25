@@ -15,7 +15,7 @@ export const compressDocumentForOCR = (file: File): Promise<string> => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-        const MAX_DIMENSION = 1500;
+        const MAX_DIMENSION = 2000;
 
         if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
           if (width > height) {
@@ -32,8 +32,8 @@ export const compressDocumentForOCR = (file: File): Promise<string> => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          // Compress heavily (quality 0.7) to drastically reduce OCR API payload size
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Quality 0.92 — preserves small printed legal text clearly
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.92);
           resolve(compressedBase64);
         } else {
           // Fallback if canvas context fails

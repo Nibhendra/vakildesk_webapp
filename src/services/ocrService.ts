@@ -10,24 +10,26 @@ export interface ExtractedCaseData {
   date: string;
 }
 
-// ─── Prompt ────────────────────────────────────────────────────────────────────
-const EXTRACTION_PROMPT = `You are a precise legal document data extraction agent.
+// ─── Prompt: no JSON mode — model reads image freely, we parse the output ──────
+const EXTRACTION_PROMPT = `You are a precise Indian legal document data extraction agent.
 
-Analyze the attached image of a legal document and extract case metadata using these STRICT rules:
+Carefully read every part of the attached document image and extract ONLY the following fields.
 
-1. court: Extract the FULL court/tribunal name from the VERY FIRST line at the top (after "BEFORE THE"). Do not abbreviate.
-2. caseNumber: Extract the exact case number immediately below the court name. Return "" if blank.
-3. caseTitle: Look ONLY under the "IN THE MATTER OF:" heading. Combine Applicant and Respondent as "[Applicant] vs [Respondent]". STOP at the word "INDEX". NEVER use names from inside index table rows.
-4. clientName: Extract just the human name of the Applicant. Strip all military ranks, service numbers, suffixes like (Retd). Return only the readable name.
-5. advocateName: Find the advocate's name in the footer signature block at the bottom of the page.
+STRICT RULES:
+1. "court": Copy the FULL tribunal/court name from the VERY FIRST line of the document (after "BEFORE THE"). Do not summarize.
+2. "caseNumber": The case/application number that appears directly below the court name. Return "" if blank.
+3. "caseTitle": Look ONLY under "IN THE MATTER OF:". Combine Applicant and Respondent as "[Applicant] vs [Respondent]". STOP reading at the word "INDEX" or any table. Do NOT use any name from inside index table rows.
+4. "clientName": Extract only the human name of the Applicant. Strip military ranks, service numbers like "No. 12345", titles, and suffixes like "(Retd)". Return only the readable personal name.
+5. "advocateName": Find the advocate's name in the signature/footer block at the bottom of the page.
 
-Return a JSON object with EXACTLY these keys: caseTitle, caseNumber, clientName, court, advocateName.
-If any value cannot be found, return "" for that key.
-Return ONLY the raw JSON. No markdown. No explanation.`;
+OUTPUT FORMAT: Return a single JSON object exactly like this (no markdown, no explanation):
+{"caseTitle":"...","caseNumber":"...","clientName":"...","court":"...","advocateName":"..."}
 
-// ─── Main extraction: single Gemini Vision call → structured JSON ──────────────
+If any field is not visible in the document, use "".`;
+
 export const ocrService = {
 
+  // ─── Main extraction: image → Gemini → JSON → form fields ─────────────────
   async extractCaseData(base64Image: string): Promise<ExtractedCaseData> {
     const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY as string;
     const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
@@ -36,13 +38,12 @@ export const ocrService = {
       throw new Error('Gemini API key missing. Add VITE_GOOGLE_GEMINI_API_KEY to your .env file.');
     }
 
-    // Strip data URI prefix and detect MIME type
     const prefixRegex = /^data:(.*?);base64,/;
     const mimeType = base64Image.match(prefixRegex)?.[1] ?? 'image/jpeg';
     const imageData = base64Image.replace(prefixRegex, '');
 
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 20000;
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY_MS = 15000;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
@@ -58,14 +59,14 @@ export const ocrService = {
               { inline_data: { mime_type: mimeType, data: imageData } },
             ],
           }],
+          // NOTE: No responseMimeType — JSON mode conflicts with multimodal image reading
+          // We parse JSON from the free-text response instead
           generationConfig: {
             temperature: 0,
-            responseMimeType: 'application/json',
           },
         }),
       });
 
-      // Rate limit → wait and retry
       if (response.status === 429) {
         if (attempt < MAX_RETRIES) {
           await sleep(RETRY_DELAY_MS);
@@ -80,38 +81,66 @@ export const ocrService = {
       }
 
       const data = await response.json();
-      const rawText: string = data?.candidates?.[0]?.content?.parts
-        ?.map((p: { text?: string }) => p.text ?? '')
-        .join('') ?? '';
 
-      // Defensively strip markdown fences if model adds them
-      const cleaned = rawText
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/```\s*$/i, '')
-        .trim();
+      // Filter out thinking parts (thought === true), keep only answer parts
+      const parts: Array<{ text?: string; thought?: boolean }> =
+        data?.candidates?.[0]?.content?.parts ?? [];
+      const rawText = parts
+        .filter(p => !p.thought)
+        .map(p => p.text ?? '')
+        .join('');
 
-      try {
-        const parsed = JSON.parse(cleaned);
+      // Try to find and parse a JSON object from the response text
+      const parsed = this._extractJSON(rawText);
+      if (parsed) {
         return {
-          title:         parsed.caseTitle     ?? '',
-          caseNumber:    parsed.caseNumber    ?? '',
-          clientName:    parsed.clientName    ?? '',
-          court:         parsed.court         ?? '',
-          advocateName:  parsed.advocateName  ?? '',
+          title:        this._str(parsed.caseTitle),
+          caseNumber:   this._str(parsed.caseNumber),
+          clientName:   this._str(parsed.clientName),
+          court:        this._str(parsed.court),
+          advocateName: this._str(parsed.advocateName),
           date: '',
         };
-      } catch {
-        console.error('[OCR] JSON parse failed. Raw response:', rawText);
-        // Don't crash — return empty so user can fill manually
-        return { title: '', caseNumber: '', clientName: '', court: '', advocateName: '', date: '' };
       }
+
+      // If JSON extraction failed, return empty — don't crash
+      console.warn('[OCR] Could not parse JSON from Gemini response. Raw:', rawText.substring(0, 300));
+      return { title: '', caseNumber: '', clientName: '', court: '', advocateName: '', date: '' };
     }
 
     return { title: '', caseNumber: '', clientName: '', court: '', advocateName: '', date: '' };
   },
 
-  // ─── AI Summary (used by AIAnalysisModal) ──────────────────────────────────
+  // ─── Robust JSON extractor: handles fences, leading text, nested objects ───
+  _extractJSON(text: string): Record<string, string> | null {
+    if (!text) return null;
+
+    // 1. Strip markdown fences
+    let cleaned = text
+      .replace(/^```json\s*/im, '')
+      .replace(/^```\s*/im, '')
+      .replace(/```\s*$/im, '')
+      .trim();
+
+    // 2. Try direct parse
+    try { return JSON.parse(cleaned); } catch { /* fall through */ }
+
+    // 3. Try to extract the first {...} block from the text (model may add preamble)
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { return JSON.parse(match[0]); } catch { /* fall through */ }
+    }
+
+    return null;
+  },
+
+  // ─── Safe string coercion: treats null/undefined/false as "" ─────────────
+  _str(value: unknown): string {
+    if (value === null || value === undefined || value === false) return '';
+    return String(value).trim();
+  },
+
+  // ─── AI Summary (used by AIAnalysisModal) ─────────────────────────────────
   async summarizeLegalDocument(base64Image: string): Promise<string> {
     const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY as string;
     const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
@@ -124,8 +153,8 @@ export const ocrService = {
     const mimeType = base64Image.match(prefixRegex)?.[1] ?? 'image/jpeg';
     const imageData = base64Image.replace(prefixRegex, '');
 
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 20000;
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY_MS = 15000;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
@@ -138,7 +167,7 @@ export const ocrService = {
             role: 'user',
             parts: [
               {
-                text: 'Analyze this legal document. Provide a structured summary containing: 1. Main Case Title/Parties, 2. Key Facts, 3. Legal Sections Mentioned, and 4. What the document is (e.g., FIR, Order, Application). Use clear Markdown formatting with bullet points.',
+                text: 'Analyze this legal document image. Provide a structured summary with: 1. Case Title/Parties, 2. Key Facts, 3. Legal Sections Mentioned, 4. Document Type (FIR/Order/Application). Use Markdown with bullet points.',
               },
               { inline_data: { mime_type: mimeType, data: imageData } },
             ],
@@ -158,11 +187,12 @@ export const ocrService = {
       }
 
       const data = await response.json();
-      return (
-        data?.candidates?.[0]?.content?.parts
-          ?.map((p: { text?: string }) => p.text ?? '')
-          .join('\n') ?? 'No summary could be generated.'
-      );
+      const parts: Array<{ text?: string; thought?: boolean }> =
+        data?.candidates?.[0]?.content?.parts ?? [];
+      return parts
+        .filter(p => !p.thought)
+        .map(p => p.text ?? '')
+        .join('\n') || 'No summary could be generated.';
     }
 
     return 'No summary could be generated.';
