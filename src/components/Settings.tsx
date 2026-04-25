@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, User, Phone, MapPin, Award, Building2, CheckCircle2, Sun, Moon, Bell, Database, Info } from 'lucide-react';
+import { Save, User, Phone, MapPin, Award, Building2, CheckCircle2, Sun, Moon, Bell, Database, Info, PlugZap, Server, Loader2 } from 'lucide-react';
+import { integrationService } from '../services/integrationService';
 
 interface AdvocateProfile {
   name: string;
@@ -32,13 +33,56 @@ export function Settings({ theme, onToggleTheme }: SettingsProps) {
   const [profile, setProfile] = useState<AdvocateProfile>(DEFAULT_PROFILE);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [saved, setSaved] = useState(false);
+  const [integrationLoading, setIntegrationLoading] = useState(false);
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
+  const [backendReady, setBackendReady] = useState(false);
+  const [mcpCommand, setMcpCommand] = useState('npm run dev:mcp');
+  const [v0Configured, setV0Configured] = useState(false);
+  const [v0Model, setV0Model] = useState('v0-1.5-md');
+  const [v0Prompt, setV0Prompt] = useState('Create a responsive case timeline card for VakilDesk with upcoming hearing badges and fee due indicators.');
+  const [v0Output, setV0Output] = useState('');
 
   useEffect(() => {
     const p = localStorage.getItem(STORAGE_KEY);
     if (p) try { setProfile(JSON.parse(p)); } catch { /* ignore */ }
     const q = localStorage.getItem(PREFS_KEY);
     if (q) try { setPrefs(JSON.parse(q)); } catch { /* ignore */ }
+
+    void refreshIntegrations();
   }, []);
+
+  const refreshIntegrations = async () => {
+    setIntegrationLoading(true);
+    setIntegrationError(null);
+    try {
+      const health = await integrationService.getHealth();
+      setBackendReady(Boolean(health.ok));
+      setMcpCommand(health.mcp.command);
+      setV0Configured(health.v0.configured);
+      setV0Model(health.v0.model);
+    } catch (error) {
+      setIntegrationError(error instanceof Error ? error.message : String(error));
+      setBackendReady(false);
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  const testV0Prompt = async () => {
+    setIntegrationLoading(true);
+    setIntegrationError(null);
+    setV0Output('');
+    try {
+      const data = await integrationService.generateWithV0(v0Prompt);
+      const content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2);
+      setV0Output(content);
+      setV0Model(data.model || v0Model);
+    } catch (error) {
+      setIntegrationError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
 
   const handleSave = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
@@ -242,6 +286,84 @@ export function Settings({ theme, onToggleTheme }: SettingsProps) {
           >
             Clear Saved Profile Data
           </button>
+        </div>
+
+        {/* ── AI Integrations ── */}
+        <div className="glass-panel p-6">
+          <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
+            <PlugZap size={20} className="text-blue-400" />
+            AI Integrations (v0 + MCP)
+          </h3>
+
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border)' }}>
+              <span className="theme-muted">Backend API</span>
+              <span className={backendReady ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
+                {backendReady ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border)' }}>
+              <span className="theme-muted flex items-center gap-2"><Server size={14} /> MCP Command</span>
+              <span className="theme-text font-mono text-xs">{mcpCommand}</span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border)' }}>
+              <span className="theme-muted">v0 API Key</span>
+              <span className={v0Configured ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
+                {v0Configured ? 'Configured' : 'Missing'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border)' }}>
+              <span className="theme-muted">v0 Model</span>
+              <span className="theme-text font-mono text-xs">{v0Model}</span>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="v0-prompt" className="text-sm font-medium theme-muted">Test v0 Prompt</label>
+              <textarea
+                id="v0-prompt"
+                rows={4}
+                value={v0Prompt}
+                onChange={e => setV0Prompt(e.target.value)}
+                className={`${inputClass} resize-y`}
+                placeholder="Describe the UI block you want v0 to generate"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={refreshIntegrations}
+                className="px-4 py-2 rounded-lg border text-sm cursor-pointer font-medium hover:border-blue-500/50 hover:text-blue-400 transition-colors"
+                style={{ borderColor: 'var(--border)' }}
+                disabled={integrationLoading}
+              >
+                {integrationLoading ? 'Checking...' : 'Re-check Integrations'}
+              </button>
+              <button
+                onClick={testV0Prompt}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm cursor-pointer font-medium transition-colors inline-flex items-center gap-2 disabled:opacity-70"
+                disabled={integrationLoading || !v0Prompt.trim()}
+              >
+                {integrationLoading && <Loader2 size={14} className="animate-spin" />}
+                Run v0 Test
+              </button>
+            </div>
+
+            {integrationError && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 px-3 py-2 text-xs">
+                {integrationError}
+              </div>
+            )}
+
+            {v0Output && (
+              <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border)' }}>
+                <p className="theme-muted text-xs mb-2">v0 response preview</p>
+                <pre className="text-xs whitespace-pre-wrap break-words theme-text">{v0Output}</pre>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── About ── */}

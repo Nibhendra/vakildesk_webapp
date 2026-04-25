@@ -1,31 +1,89 @@
 export const ocrService = {
   async extractTextFromImage(base64Image: string): Promise<string> {
-    const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-    if (!apiKey) throw new Error("Google Vision API Key not found");
+    const visionApiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+    const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY;
+    const geminiModel = import.meta.env.VITE_GOOGLE_GEMINI_MODEL ?? 'gemini-1.5-flash';
 
-    const endpoint = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+    const normalizedBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
 
-    const requestBody = {
-      requests: [
-        {
-          image: { content: base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "") },
-          features: [{ type: "TEXT_DETECTION" }],
-        },
-      ],
+    const runVisionOcr = async () => {
+      const endpoint = `https://vision.googleapis.com/v1/images:annotate?key=${visionApiKey}`;
+      const requestBody = {
+        requests: [
+          {
+            image: { content: normalizedBase64 },
+            features: [{ type: 'TEXT_DETECTION' }],
+          },
+        ],
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Google Vision API');
+      }
+
+      const data = await response.json();
+      return data.responses?.[0]?.textAnnotations?.[0]?.description || '';
     };
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
+    const runGeminiOcr = async () => {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: 'Extract all readable text from this legal document image. Return plain text only and preserve line breaks.',
+                },
+                {
+                  inline_data: {
+                    mime_type: 'image/jpeg',
+                    data: normalizedBase64,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      });
 
-    if (!response.ok) {
-        throw new Error("Failed to fetch from Google Vision API");
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Google Gemini API');
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('\n') ?? '';
+      return text.trim();
+    };
+
+    if (geminiApiKey) {
+      try {
+        const geminiText = await runGeminiOcr();
+        if (geminiText) return geminiText;
+      } catch {
+        // Fallback to Vision OCR if Gemini is unavailable or fails.
+      }
     }
 
-    const data = await response.json();
-    return data.responses?.[0]?.textAnnotations?.[0]?.description || "";
+    if (visionApiKey) {
+      try {
+        const visionText = await runVisionOcr();
+        if (visionText) return visionText;
+      } catch {
+        // Both providers failed.
+      }
+    }
+
+    throw new Error('No OCR key configured. Add VITE_GOOGLE_VISION_API_KEY or VITE_GOOGLE_GEMINI_API_KEY in .env');
   },
 
   parseTextToCaseData(text: string) {

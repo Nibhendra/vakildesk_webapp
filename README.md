@@ -51,7 +51,11 @@ VITE_FIREBASE_STORAGE_BUCKET="your_firebase_storage_bucket"
 VITE_FIREBASE_MESSAGING_SENDER_ID="your_firebase_messaging_sender_id"
 VITE_FIREBASE_APP_ID="your_firebase_app_id"
 VITE_GOOGLE_VISION_API_KEY="your_google_cloud_vision_api_key"
+VITE_GOOGLE_GEMINI_API_KEY="your_google_gemini_api_key"
+VITE_GOOGLE_GEMINI_MODEL="gemini-1.5-flash"
 ```
+
+OCR supports both Google Vision and Gemini. If Vision key is missing or Vision fails, the app falls back to Gemini OCR automatically.
 
 ### 4. Running the Development Server
 Start the Vite development server:
@@ -59,6 +63,38 @@ Start the Vite development server:
 npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
+
+### 5. v0 + MCP Integration
+
+This project now includes:
+
+- A local backend API (`backend/server.ts`) for v0 requests.
+- A standalone MCP server (`backend/mcpServer.ts`) over stdio.
+- A Settings panel section to test backend + v0 connection.
+
+Run frontend + backend together:
+
+```bash
+npm run dev:full
+```
+
+Run MCP server separately:
+
+```bash
+npm run dev:mcp
+```
+
+Required environment variables for this integration:
+
+```env
+VITE_BACKEND_URL="http://localhost:8787"
+V0_API_KEY="your_v0_api_key"
+V0_BASE_URL="https://api.v0.dev/v1"
+V0_MODEL="v0-1.5-md"
+PORT="8787"
+```
+
+You can verify status in **Settings > AI Integrations (v0 + MCP)**.
 
 ## 📁 Project Structure
 - `/src/components` - React visual components (`Sidebar`, `Dashboard`, `SmartDropZone`, etc.)
