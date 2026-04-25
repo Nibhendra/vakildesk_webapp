@@ -1,8 +1,119 @@
 import { useEffect, useMemo } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { IndianRupee, TrendingUp, TrendingDown, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { IndianRupee, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, BarChart3 } from 'lucide-react';
 import clsx from 'clsx';
 
+// ── Monthly SVG Bar Chart ────────────────────────────────────────────────────
+function MonthlyChart({ cases }: { cases: ReturnType<typeof useCaseStore.getState>['cases'] }) {
+  const months = useMemo(() => {
+    const year = new Date().getFullYear();
+    const data: { label: string; billed: number; collected: number }[] = [];
+
+    for (let m = 0; m < 12; m++) {
+      const label = new Date(year, m, 1).toLocaleString('default', { month: 'short' });
+      let billed = 0;
+      let collected = 0;
+      cases.forEach(c => {
+        const d = new Date(c.nextHearingDate);
+        if (d.getFullYear() === year && d.getMonth() === m) {
+          billed += c.totalFees;
+          collected += Math.min(c.feesPaid, c.totalFees);
+        }
+      });
+      data.push({ label, billed, collected });
+    }
+    return data;
+  }, [cases]);
+
+  const maxVal = Math.max(...months.flatMap(m => [m.billed, m.collected]), 1);
+  const chartH = 120;
+  const barW = 18;
+  const gap = 8;
+  const groupW = barW * 2 + gap + 12;
+  const svgW = months.length * groupW;
+
+  const fmt = (n: number) =>
+    n >= 100_000 ? `₹${(n / 100_000).toFixed(1)}L`
+    : n >= 1_000 ? `₹${(n / 1_000).toFixed(0)}K`
+    : `₹${n}`;
+
+  return (
+    <div className="glass-panel p-6 mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 size={18} className="text-blue-400" />
+        <h3 className="text-lg font-semibold text-slate-200">Monthly Fee Overview ({new Date().getFullYear()})</h3>
+        <div className="ml-auto flex items-center gap-4 text-xs text-slate-400">
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" /> Billed</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> Collected</span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <svg width={svgW} height={chartH + 28} className="min-w-full">
+          {months.map((m, i) => {
+            const x = i * groupW + 6;
+            const billedH = maxVal > 0 ? Math.round((m.billed / maxVal) * chartH) : 0;
+            const collectedH = maxVal > 0 ? Math.round((m.collected / maxVal) * chartH) : 0;
+
+            return (
+              <g key={m.label}>
+                {/* Billed bar */}
+                {billedH > 0 && (
+                  <rect
+                    x={x}
+                    y={chartH - billedH}
+                    width={barW}
+                    height={billedH}
+                    rx={3}
+                    fill="rgba(59,130,246,0.7)"
+                    className="hover:fill-blue-400 transition-colors cursor-default"
+                  >
+                    <title>{m.label} Billed: {fmt(m.billed)}</title>
+                  </rect>
+                )}
+
+                {/* Collected bar */}
+                {collectedH > 0 && (
+                  <rect
+                    x={x + barW + gap}
+                    y={chartH - collectedH}
+                    width={barW}
+                    height={collectedH}
+                    rx={3}
+                    fill="rgba(34,197,94,0.7)"
+                    className="hover:fill-green-400 transition-colors cursor-default"
+                  >
+                    <title>{m.label} Collected: {fmt(m.collected)}</title>
+                  </rect>
+                )}
+
+                {/* Month label */}
+                <text
+                  x={x + barW + gap / 2}
+                  y={chartH + 16}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#64748b"
+                >
+                  {m.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Baseline */}
+          <line x1={0} y1={chartH} x2={svgW} y2={chartH} stroke="rgba(71,85,105,0.3)" strokeWidth={1} />
+        </svg>
+      </div>
+
+      {months.every(m => m.billed === 0) && (
+        <p className="text-center text-sm text-slate-500 mt-2">No hearings scheduled for this year yet.</p>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 export function Financials() {
   const { cases, fetchCases, loading } = useCaseStore();
 
@@ -16,9 +127,7 @@ export function Financials() {
     const totalPaid = cases.reduce((acc, c) => acc + Math.min(c.feesPaid, c.totalFees), 0);
     const totalPending = Math.max(0, totalFees - totalPaid);
     const collectionRate = totalFees > 0 ? Math.min(100, Math.round((totalPaid / totalFees) * 100)) : 0;
-    // Fully paid = has fees AND feesPaid >= totalFees
     const fullyPaid = cases.filter(c => c.totalFees > 0 && c.feesPaid >= c.totalFees);
-    // Pending = active, has fees, not fully paid
     const pendingCases = activeCases.filter(c => c.totalFees > 0 && c.feesPaid < c.totalFees);
     return { totalFees, totalPaid, totalPending, collectionRate, pendingCases, fullyPaid };
   }, [cases]);
@@ -46,44 +155,14 @@ export function Financials() {
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          {
-            label: 'Total Billed',
-            value: fmt(stats.totalFees),
-            icon: IndianRupee,
-            color: 'from-blue-600/20 to-blue-900/10 border-blue-500/20',
-            iconColor: 'text-blue-400',
-          },
-          {
-            label: 'Total Collected',
-            value: fmt(stats.totalPaid),
-            icon: TrendingUp,
-            color: 'from-green-600/20 to-green-900/10 border-green-500/20',
-            iconColor: 'text-green-400',
-          },
-          {
-            label: 'Total Pending',
-            value: fmt(stats.totalPending),
-            icon: TrendingDown,
-            color: 'from-amber-600/20 to-amber-900/10 border-amber-500/20',
-            iconColor: 'text-amber-400',
-          },
-          {
-            label: 'Collection Rate',
-            value: `${stats.collectionRate}%`,
-            icon: CheckCircle2,
-            color: 'from-purple-600/20 to-purple-900/10 border-purple-500/20',
-            iconColor: 'text-purple-400',
-          },
+          { label: 'Total Billed', value: fmt(stats.totalFees), icon: IndianRupee, color: 'from-blue-600/20 to-blue-900/10 border-blue-500/20', iconColor: 'text-blue-400' },
+          { label: 'Total Collected', value: fmt(stats.totalPaid), icon: TrendingUp, color: 'from-green-600/20 to-green-900/10 border-green-500/20', iconColor: 'text-green-400' },
+          { label: 'Total Pending', value: fmt(stats.totalPending), icon: TrendingDown, color: 'from-amber-600/20 to-amber-900/10 border-amber-500/20', iconColor: 'text-amber-400' },
+          { label: 'Collection Rate', value: `${stats.collectionRate}%`, icon: CheckCircle2, color: 'from-purple-600/20 to-purple-900/10 border-purple-500/20', iconColor: 'text-purple-400' },
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.label}
-              className={clsx(
-                'bg-gradient-to-br border rounded-xl p-5 relative overflow-hidden',
-                card.color
-              )}
-            >
+            <div key={card.label} className={clsx('bg-gradient-to-br border rounded-xl p-5 relative overflow-hidden', card.color)}>
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-slate-400 text-xs uppercase tracking-wider mb-2">{card.label}</p>
@@ -95,6 +174,9 @@ export function Financials() {
           );
         })}
       </div>
+
+      {/* Monthly Chart */}
+      <MonthlyChart cases={cases} />
 
       {/* Collection Rate Bar */}
       <div className="glass-panel p-6 mb-8">
@@ -120,7 +202,9 @@ export function Financials() {
           <h3 className="text-lg font-semibold text-slate-200">Per-Case Fee Breakdown</h3>
         </div>
         <div className="divide-y divide-slate-700/30">
-          {cases.map((c) => {
+          {cases.length === 0 ? (
+            <p className="text-center text-slate-500 text-sm py-8">No cases found.</p>
+          ) : cases.map((c) => {
             const pending = Math.max(0, c.totalFees - c.feesPaid);
             const rate = c.totalFees > 0 ? Math.min(100, Math.round((c.feesPaid / c.totalFees) * 100)) : 0;
             const isPaid = c.totalFees > 0 && pending <= 0;
@@ -134,13 +218,11 @@ export function Financials() {
                   <div className="text-right shrink-0 ml-4">
                     {isPaid ? (
                       <span className="flex items-center space-x-1 text-green-400 text-sm font-medium">
-                        <CheckCircle2 size={14} />
-                        <span>Paid in Full</span>
+                        <CheckCircle2 size={14} /><span>Paid in Full</span>
                       </span>
                     ) : (
                       <span className="flex items-center space-x-1 text-amber-400 text-sm font-medium">
-                        <AlertCircle size={14} />
-                        <span>{fmt(pending)} Pending</span>
+                        <AlertCircle size={14} /><span>{fmt(pending)} Pending</span>
                       </span>
                     )}
                     <p className="text-xs text-slate-500 text-right mt-0.5">
@@ -150,10 +232,7 @@ export function Financials() {
                 </div>
                 <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                   <div
-                    className={clsx(
-                      'h-full rounded-full transition-all',
-                      isPaid ? 'bg-green-400' : 'bg-amber-400'
-                    )}
+                    className={clsx('h-full rounded-full transition-all', isPaid ? 'bg-green-400' : 'bg-amber-400')}
                     style={{ width: `${rate}%` }}
                   />
                 </div>

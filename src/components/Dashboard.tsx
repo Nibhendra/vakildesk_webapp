@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
 import { FinancialSnapshot } from './FinancialSnapshot';
 import { EditCaseModal } from './EditCaseModal';
+import { HearingCountdownBanner } from './HearingCountdownBanner';
 import { Calendar, MapPin, Scale, Plus, Pencil } from 'lucide-react';
 import { differenceInHours, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import type { Case } from '../types';
 import { formatHearingDate } from '../utils/dateFormat';
 
-export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
+export function Dashboard({ onAddCase, onViewCalendar }: { onAddCase: () => void; onViewCalendar: () => void }) {
   const { cases, fetchCases, loading } = useCaseStore();
   const [editingCase, setEditingCase] = useState<Case | null>(null);
 
@@ -60,6 +61,7 @@ export function Dashboard({ onAddCase }: { onAddCase: () => void }) {
 
   return (
     <>
+    <HearingCountdownBanner onViewCalendar={onViewCalendar} />
     <div className="flex-1 overflow-y-auto p-8 relative">
       <div className="flex justify-between items-center mb-8">
         <div>

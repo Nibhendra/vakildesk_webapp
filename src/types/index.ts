@@ -1,3 +1,9 @@
+export interface CaseNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Case {
   id?: string;
   userId: string;

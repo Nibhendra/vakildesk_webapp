@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { X, Save, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Save, AlertCircle, Sparkles, StickyNote } from 'lucide-react';
 import type { Case } from '../types';
 import { todayISO } from '../utils/dateFormat';
+import { CaseNotes } from './CaseNotes';
 
 interface FormErrors {
   title?: string;
@@ -19,6 +20,7 @@ interface EditCaseModalProps {
 export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
   const [formData, setFormData] = useState<Case>({ ...caseData });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
   const { updateCase, loading } = useCaseStore();
 
   const validate = (): boolean => {
@@ -63,9 +65,35 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
         </button>
 
         <h2 className="text-2xl font-bold text-slate-100 mb-1">Edit Case</h2>
-        <p className="text-slate-400 text-sm mb-6 font-mono">{caseData.caseNumber}</p>
+        <p className="text-slate-400 text-sm mb-4 font-mono">{caseData.caseNumber}</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+              activeTab === 'details' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Save size={14} /> Details
+          </button>
+          <button
+            onClick={() => setActiveTab('notes')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+              activeTab === 'notes' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <StickyNote size={14} /> Notes
+          </button>
+        </div>
+
+        {activeTab === 'notes' && caseData.id && (
+          <div className="mb-6">
+            <CaseNotes caseId={caseData.id} />
+          </div>
+        )}
+
+        {activeTab === 'details' && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Case Title */}
           <div className="space-y-1">
             <label htmlFor="edit-title" className="text-sm font-medium text-slate-300">
@@ -208,7 +236,7 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
             />
             {errors.feesPaid && <p className="flex items-center gap-1 text-xs text-red-400"><AlertCircle size={12} />{errors.feesPaid}</p>}
           </div>
-        </div>
+        </div>}
 
         {caseData.aiSummary && (
           <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">

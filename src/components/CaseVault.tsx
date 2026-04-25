@@ -1,12 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { Search, Briefcase, Trash2, Calendar, Scale, Filter, Pencil, Sparkles, MessageCircle } from 'lucide-react';
+import {
+  Search, Briefcase, Trash2, Calendar, Scale, Filter,
+  Pencil, Sparkles, MessageCircle, Download, Eye,
+} from 'lucide-react';
 import clsx from 'clsx';
 import type { Case } from '../types';
 import { EditCaseModal } from './EditCaseModal';
 import { AIAnalysisModal } from './AIAnalysisModal';
 import { CommunicationModal } from './CommunicationModal';
+import { CaseDetailDrawer } from './CaseDetailDrawer';
 import { formatHearingDate } from '../utils/dateFormat';
+import { exportCasesToCSV } from '../utils/csvExport';
 
 const COURTS = ['All', 'Supreme Court', 'High Court', 'District Court', 'Tribunal'];
 const STATUSES = ['All', 'active', 'closed'];
@@ -20,6 +25,8 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
   const [editingCase, setEditingCase] = useState<Case | null>(null);
   const [analyzingCase, setAnalyzingCase] = useState<Case | null>(null);
   const [communicatingCase, setCommunicatingCase] = useState<Case | null>(null);
+  const [drawerCase, setDrawerCase] = useState<Case | null>(null);
+  const [exportFlash, setExportFlash] = useState(false);
 
   useEffect(() => {
     fetchCases();
@@ -29,13 +36,12 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
     const filteredList = cases.filter((c) => {
       const matchSearch =
         c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.caseNumber.toLowerCase().includes(search.toLowerCase());
+        c.caseNumber.toLowerCase().includes(search.toLowerCase()) ||
+        (c.clientName ?? '').toLowerCase().includes(search.toLowerCase());
       const matchCourt = courtFilter === 'All' || c.court === courtFilter;
       const matchStatus = statusFilter === 'All' || c.status === statusFilter;
       return matchSearch && matchCourt && matchStatus;
     });
-
-    // Sort by latest date first (descending order)
     return filteredList.sort((a, b) => {
       const dateA = new Date(a.nextHearingDate || 0).getTime();
       const dateB = new Date(b.nextHearingDate || 0).getTime();
@@ -50,6 +56,18 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
     setDeletingId(null);
   };
 
+  const handleExport = () => {
+    exportCasesToCSV(filtered, `vakildesk_cases_${new Date().toISOString().split('T')[0]}.csv`);
+    setExportFlash(true);
+    setTimeout(() => setExportFlash(false), 2000);
+  };
+
+  // Sync drawer case data if it was edited
+  const syncedDrawerCase = useMemo(() => {
+    if (!drawerCase?.id) return drawerCase;
+    return cases.find(c => c.id === drawerCase.id) ?? drawerCase;
+  }, [drawerCase, cases]);
+
   return (
     <div className="flex-1 overflow-y-auto p-8">
       {/* Header */}
@@ -60,14 +78,30 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
           </h2>
           <p className="text-slate-400 mt-2">All your cases in one place. Search, filter, and manage.</p>
         </div>
-        <button
-          onClick={onAddCase}
-          aria-label="Add new case"
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all font-medium cursor-pointer"
-        >
-          <Briefcase size={18} />
-          <span>Add Case</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            aria-label="Export cases to CSV"
+            title="Export filtered cases to CSV"
+            className={clsx(
+              'flex items-center space-x-2 px-4 py-3 rounded-lg border transition-all font-medium text-sm cursor-pointer',
+              exportFlash
+                ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                : 'border-slate-700 text-slate-300 hover:border-blue-500/50 hover:text-blue-400'
+            )}
+          >
+            <Download size={16} />
+            <span>{exportFlash ? 'Exported!' : 'Export CSV'}</span>
+          </button>
+          <button
+            onClick={onAddCase}
+            aria-label="Add new case"
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all font-medium cursor-pointer"
+          >
+            <Briefcase size={18} />
+            <span>Add Case</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -76,7 +110,7 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by title or case number..."
+            placeholder="Search by title, case no., or client..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
@@ -98,7 +132,11 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-transparent text-slate-300 py-2.5 focus:outline-none text-sm cursor-pointer"
           >
-            {STATUSES.map((s) => <option key={s} value={s} className="bg-slate-800 capitalize">{s === 'All' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            {STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-slate-800 capitalize">
+                {s === 'All' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -143,7 +181,15 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
             <tbody className="divide-y divide-slate-700/30">
               {filtered.map((c: Case) => (
                 <tr key={c.id} className="hover:bg-slate-700/20 transition-colors group">
-                  <td className="px-5 py-4 font-medium text-slate-200 max-w-[200px] truncate">{c.title}</td>
+                  <td className="px-5 py-4 font-medium text-slate-200 max-w-[200px]">
+                    <button
+                      onClick={() => setDrawerCase(c)}
+                      className="truncate text-left hover:text-blue-300 transition-colors cursor-pointer w-full"
+                      title="View case details"
+                    >
+                      {c.title}
+                    </button>
+                  </td>
                   <td className="px-5 py-4 text-slate-400 font-mono hidden md:table-cell">{c.caseNumber}</td>
                   <td className="px-5 py-4 text-slate-300 hidden lg:table-cell">{c.court}</td>
                   <td className="px-5 py-4 text-slate-300">
@@ -162,6 +208,14 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setDrawerCase(c)}
+                        aria-label={`View ${c.title}`}
+                        className="p-2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer rounded-lg hover:bg-slate-500/10"
+                        title="View Details"
+                      >
+                        <Eye size={15} />
+                      </button>
                       <button
                         onClick={() => setCommunicatingCase(c)}
                         aria-label={`Communicate with ${c.clientName || 'Client'}`}
@@ -204,27 +258,17 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editingCase && (
-        <EditCaseModal
-          caseData={editingCase}
-          onClose={() => setEditingCase(null)}
-        />
-      )}
-
-      {/* AI Analysis Modal */}
-      {analyzingCase && (
-        <AIAnalysisModal
-          caseData={analyzingCase}
-          onClose={() => setAnalyzingCase(null)}
-        />
-      )}
-
-      {/* Communication Modal */}
-      {communicatingCase && (
-        <CommunicationModal
-          caseData={communicatingCase}
-          onClose={() => setCommunicatingCase(null)}
+      {/* Modals */}
+      {editingCase && <EditCaseModal caseData={editingCase} onClose={() => setEditingCase(null)} />}
+      {analyzingCase && <AIAnalysisModal caseData={analyzingCase} onClose={() => setAnalyzingCase(null)} />}
+      {communicatingCase && <CommunicationModal caseData={communicatingCase} onClose={() => setCommunicatingCase(null)} />}
+      {syncedDrawerCase && (
+        <CaseDetailDrawer
+          caseData={syncedDrawerCase}
+          onClose={() => setDrawerCase(null)}
+          onEdit={() => { setEditingCase(syncedDrawerCase); setDrawerCase(null); }}
+          onCommunicate={() => { setCommunicatingCase(syncedDrawerCase); setDrawerCase(null); }}
+          onAnalyze={() => { setAnalyzingCase(syncedDrawerCase); setDrawerCase(null); }}
         />
       )}
     </div>
