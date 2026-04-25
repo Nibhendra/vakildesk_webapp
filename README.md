@@ -52,7 +52,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID="your_firebase_messaging_sender_id"
 VITE_FIREBASE_APP_ID="your_firebase_app_id"
 VITE_GOOGLE_VISION_API_KEY="your_google_cloud_vision_api_key"
 VITE_GOOGLE_GEMINI_API_KEY="your_google_gemini_api_key"
-VITE_GOOGLE_GEMINI_MODEL="gemini-1.5-flash"
+VITE_GOOGLE_GEMINI_MODEL="gemini-2.0-flash"
 ```
 
 OCR supports both Google Vision and Gemini. If Vision key is missing or Vision fails, the app falls back to Gemini OCR automatically.

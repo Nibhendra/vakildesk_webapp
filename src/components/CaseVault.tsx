@@ -22,13 +22,20 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
   }, [fetchCases]);
 
   const filtered = useMemo(() => {
-    return cases.filter((c) => {
+    const filteredList = cases.filter((c) => {
       const matchSearch =
         c.title.toLowerCase().includes(search.toLowerCase()) ||
         c.caseNumber.toLowerCase().includes(search.toLowerCase());
       const matchCourt = courtFilter === 'All' || c.court === courtFilter;
       const matchStatus = statusFilter === 'All' || c.status === statusFilter;
       return matchSearch && matchCourt && matchStatus;
+    });
+
+    // Sort by latest date first (descending order)
+    return filteredList.sort((a, b) => {
+      const dateA = new Date(a.nextHearingDate || 0).getTime();
+      const dateB = new Date(b.nextHearingDate || 0).getTime();
+      return dateB - dateA;
     });
   }, [cases, search, courtFilter, statusFilter]);
 

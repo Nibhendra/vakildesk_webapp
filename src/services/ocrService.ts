@@ -1,10 +1,16 @@
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const ocrService = {
   async extractTextFromImage(base64Image: string): Promise<string> {
     const visionApiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
     const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY;
-    const geminiModel = import.meta.env.VITE_GOOGLE_GEMINI_MODEL ?? 'gemini-1.5-flash';
+    const geminiModel = import.meta.env.VITE_GOOGLE_GEMINI_MODEL ?? 'gemini-2.0-flash-lite';
 
-    const normalizedBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+    // Detect mime type from data URI prefix
+    const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+    const normalizedBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
 
     const runVisionOcr = async () => {
       const endpoint = `https://vision.googleapis.com/v1/images:annotate?key=${visionApiKey}`;
@@ -24,53 +30,66 @@ export const ocrService = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch from Google Vision API');
+        throw new Error(`Google Vision API request failed with status ${response.status}`);
       }
 
       const data = await response.json();
       return data.responses?.[0]?.textAnnotations?.[0]?.description || '';
     };
 
-    const runGeminiOcr = async () => {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
+    const runGeminiOcr = async (): Promise<string> => {
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY_MS = 20000; // 20s — gives the per-minute quota time to reset
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
               role: 'user',
               parts: [
-                {
-                  text: 'Extract all readable text from this legal document image. Return plain text only and preserve line breaks.',
-                },
-                {
-                  inline_data: {
-                    mime_type: 'image/jpeg',
-                    data: normalizedBase64,
-                  },
-                },
+                { text: 'Extract all readable text from this legal document image. Return plain text only and preserve line breaks.' },
+                { inline_data: { mime_type: mimeType, data: normalizedBase64 } },
               ],
-            },
-          ],
-        }),
-      });
+            }],
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch from Google Gemini API');
+        if (response.status === 429) {
+          if (attempt < MAX_RETRIES) {
+            await sleep(RETRY_DELAY_MS);
+            continue;
+          }
+          throw new Error('Rate limit reached after 3 attempts. Please wait ~1 minute and try again.');
+        }
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          const apiMsg = errBody?.error?.message ?? `status ${response.status}`;
+          throw new Error(`Gemini API error: ${apiMsg}`);
+        }
+
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts
+          ?.map((part: { text?: string }) => part.text ?? '')
+          .join('\n') ?? '';
+        return text.trim();
       }
-
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('\n') ?? '';
-      return text.trim();
+      return '';
     };
+
+    let lastProviderError: string | null = null;
 
     if (geminiApiKey) {
       try {
         const geminiText = await runGeminiOcr();
         if (geminiText) return geminiText;
-      } catch {
+        lastProviderError = 'Gemini OCR did not return extractable text';
+      } catch (err) {
         // Fallback to Vision OCR if Gemini is unavailable or fails.
+        lastProviderError = err instanceof Error ? err.message : 'Gemini OCR request failed.';
       }
     }
 
@@ -78,9 +97,19 @@ export const ocrService = {
       try {
         const visionText = await runVisionOcr();
         if (visionText) return visionText;
+        if (!lastProviderError) {
+          lastProviderError = 'Vision OCR did not return extractable text';
+        }
       } catch {
         // Both providers failed.
+        if (!lastProviderError) {
+          lastProviderError = 'Vision OCR request failed. Check VITE_GOOGLE_VISION_API_KEY permissions.';
+        }
       }
+    }
+
+    if (lastProviderError) {
+      throw new Error(lastProviderError);
     }
 
     throw new Error('No OCR key configured. Add VITE_GOOGLE_VISION_API_KEY or VITE_GOOGLE_GEMINI_API_KEY in .env');

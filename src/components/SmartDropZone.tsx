@@ -7,6 +7,10 @@ interface SmartDropZoneProps {
   onDataParsed: (data: { title: string; caseNumber: string; date: string }) => void;
 }
 
+const hasOcrKey =
+  !!import.meta.env.VITE_GOOGLE_GEMINI_API_KEY ||
+  !!import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+
 export function SmartDropZone({ onDataParsed }: SmartDropZoneProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +65,7 @@ export function SmartDropZone({ onDataParsed }: SmartDropZoneProps) {
         <div className="flex flex-col items-center justify-center space-y-4">
           <Loader2 className="animate-spin text-blue-500" size={48} />
           <p className="text-slate-300">Extracting details with Smart OCR...</p>
+          <p className="text-slate-500 text-xs">This may take a moment. Retrying automatically if needed.</p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center space-y-4">
@@ -69,10 +74,17 @@ export function SmartDropZone({ onDataParsed }: SmartDropZoneProps) {
             <p className="text-lg font-medium text-slate-200">Drag & drop case document</p>
             <p className="text-sm text-slate-400 mt-1">or click to select file (Images only)</p>
           </div>
-          <div className="flex items-center space-x-2 text-xs text-amber-500 mt-4 bg-amber-500/10 px-3 py-1 rounded-full">
-            <FileText size={14} />
-            <span>Smart Read Active</span>
-          </div>
+          {hasOcrKey ? (
+            <div className="flex items-center space-x-2 text-xs text-amber-500 mt-4 bg-amber-500/10 px-3 py-1 rounded-full">
+              <FileText size={14} />
+              <span>Smart Read Active</span>
+            </div>
+          ) : (
+            <p className="text-red-400 text-xs mt-4 text-center leading-relaxed">
+              No OCR key configured. Add <code className="bg-slate-700 px-1 rounded">VITE_GOOGLE_VISION_API_KEY</code> or{' '}
+              <code className="bg-slate-700 px-1 rounded">VITE_GOOGLE_GEMINI_API_KEY</code> in .env
+            </p>
+          )}
         </div>
       )}
       {error && (
