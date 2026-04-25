@@ -141,10 +141,56 @@ export const ocrService = {
         }
     }
 
-    return {
-      title,
-      caseNumber,
-      date: formattedDate
-    };
+    return { title, caseNumber, date: formattedDate };
+  },
+
+  async summarizeLegalDocument(base64Image: string): Promise<string> {
+    const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY;
+    const geminiModel = import.meta.env.VITE_GOOGLE_GEMINI_MODEL ?? 'gemini-2.0-flash-lite';
+    
+    if (!geminiApiKey) {
+      throw new Error('Gemini API Key is required for Document Summarization. Please add VITE_GOOGLE_GEMINI_API_KEY to .env');
+    }
+
+    const mimeMatch = base64Image.match(/^data:(image\/[a-z]+);base64,/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const normalizedBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 20000;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [
+              { text: 'Analyze this legal document. Provide a structured summary containing: 1. Main Case Title/Parties, 2. Key Facts, 3. Legal Sections Mentioned, and 4. What the document is (e.g., FIR, Order, Application). Use clear Markdown formatting with bullet points.' },
+              { inline_data: { mime_type: mimeType, data: normalizedBase64 } },
+            ],
+          }],
+        }),
+      });
+
+      if (response.status === 429) {
+        if (attempt < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+        throw new Error('Rate limit hit after 3 attempts. Please wait ~1 minute and try again.');
+      }
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(`Gemini API error: ${errBody?.error?.message ?? response.status}`);
+      }
+
+      const data = await response.json();
+      return data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n') || 'No clear summary could be generated.';
+    }
+    return '';
   }
 };

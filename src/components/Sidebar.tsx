@@ -1,4 +1,4 @@
-import { Briefcase, LayoutDashboard, Wallet, Settings, Sun, Moon } from 'lucide-react';
+import { Briefcase, LayoutDashboard, Wallet, Settings, Sun, Moon, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ export function Sidebar({ activeTab, setActiveTab, theme, onToggleTheme }: Sideb
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, ariaLabel: 'Go to Dashboard' },
     { id: 'vault', label: 'Case Vault', icon: Briefcase, ariaLabel: 'Access Case Vault' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, ariaLabel: 'View Smart Calendar' },
     { id: 'financials', label: 'Financials', icon: Wallet, ariaLabel: 'View Financials' },
   ];
 

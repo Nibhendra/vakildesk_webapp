@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Sparkles } from 'lucide-react';
 import type { Case } from '../types';
 import { todayISO } from '../utils/dateFormat';
 
@@ -100,6 +100,35 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
             {errors.caseNumber && <p className="flex items-center gap-1 text-xs text-red-400"><AlertCircle size={12} />{errors.caseNumber}</p>}
           </div>
 
+          {/* Client Name */}
+          <div className="space-y-1">
+            <label htmlFor="edit-client-name" className="text-sm font-medium text-slate-300">
+              Client Name
+            </label>
+            <input
+              id="edit-client-name"
+              type="text"
+              value={formData.clientName || ''}
+              onChange={e => setFormData({ ...formData, clientName: e.target.value })}
+              className={inputClass(false)}
+              placeholder="Rahul Sharma"
+            />
+          </div>
+
+          {/* Client Phone */}
+          <div className="space-y-1">
+            <label htmlFor="edit-client-phone" className="text-sm font-medium text-slate-300">
+              Client Phone (WhatsApp)
+            </label>
+            <input
+              id="edit-client-phone"
+              type="tel"
+              value={formData.clientPhone || ''}
+              onChange={e => setFormData({ ...formData, clientPhone: e.target.value })}
+              className={inputClass(false)}
+              placeholder="+91 9999999999"
+            />
+          </div>
           {/* Court */}
           <div className="space-y-1 md:col-span-2">
             <label htmlFor="edit-court" className="text-sm font-medium text-slate-300">Court</label>
@@ -180,6 +209,18 @@ export function EditCaseModal({ caseData, onClose }: EditCaseModalProps) {
             {errors.feesPaid && <p className="flex items-center gap-1 text-xs text-red-400"><AlertCircle size={12} />{errors.feesPaid}</p>}
           </div>
         </div>
+
+        {caseData.aiSummary && (
+          <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+            <h3 className="text-sm font-medium flex items-center space-x-2 text-slate-300 mb-3">
+              <Sparkles size={16} className="text-amber-400" />
+              <span>AI Case Summary</span>
+            </h3>
+            <div className="text-slate-400 whitespace-pre-wrap leading-relaxed text-sm format-markdown max-h-40 overflow-y-auto pr-2">
+              {caseData.aiSummary}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-700">
           <button

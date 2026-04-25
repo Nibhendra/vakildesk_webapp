@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useCaseStore } from '../store/useCaseStore';
-import { Search, Briefcase, Trash2, Calendar, Scale, Filter, Pencil } from 'lucide-react';
+import { Search, Briefcase, Trash2, Calendar, Scale, Filter, Pencil, Sparkles, MessageCircle } from 'lucide-react';
 import clsx from 'clsx';
 import type { Case } from '../types';
 import { EditCaseModal } from './EditCaseModal';
+import { AIAnalysisModal } from './AIAnalysisModal';
+import { CommunicationModal } from './CommunicationModal';
 import { formatHearingDate } from '../utils/dateFormat';
 
 const COURTS = ['All', 'Supreme Court', 'High Court', 'District Court', 'Tribunal'];
@@ -16,6 +18,8 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
   const [statusFilter, setStatusFilter] = useState('All');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingCase, setEditingCase] = useState<Case | null>(null);
+  const [analyzingCase, setAnalyzingCase] = useState<Case | null>(null);
+  const [communicatingCase, setCommunicatingCase] = useState<Case | null>(null);
 
   useEffect(() => {
     fetchCases();
@@ -159,6 +163,22 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
                   <td className="px-5 py-4">
                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
+                        onClick={() => setCommunicatingCase(c)}
+                        aria-label={`Communicate with ${c.clientName || 'Client'}`}
+                        className="p-2 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer rounded-lg hover:bg-emerald-500/10"
+                        title="Client Communication & Invoice"
+                      >
+                        <MessageCircle size={15} />
+                      </button>
+                      <button
+                        onClick={() => setAnalyzingCase(c)}
+                        aria-label={`Analyze ${c.title}`}
+                        className="p-2 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer rounded-lg hover:bg-amber-500/10"
+                        title="AI Document Analysis"
+                      >
+                        <Sparkles size={15} />
+                      </button>
+                      <button
                         onClick={() => setEditingCase(c)}
                         aria-label={`Edit ${c.title}`}
                         className="p-2 text-slate-400 hover:text-blue-400 transition-colors cursor-pointer rounded-lg hover:bg-blue-500/10"
@@ -189,6 +209,22 @@ export function CaseVault({ onAddCase }: { onAddCase: () => void }) {
         <EditCaseModal
           caseData={editingCase}
           onClose={() => setEditingCase(null)}
+        />
+      )}
+
+      {/* AI Analysis Modal */}
+      {analyzingCase && (
+        <AIAnalysisModal
+          caseData={analyzingCase}
+          onClose={() => setAnalyzingCase(null)}
+        />
+      )}
+
+      {/* Communication Modal */}
+      {communicatingCase && (
+        <CommunicationModal
+          caseData={communicatingCase}
+          onClose={() => setCommunicatingCase(null)}
         />
       )}
     </div>

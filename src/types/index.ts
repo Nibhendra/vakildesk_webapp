@@ -8,4 +8,7 @@ export interface Case {
   totalFees: number;
   feesPaid: number;
   status: "active" | "closed";
+  aiSummary?: string;
+  clientName?: string;
+  clientPhone?: string;
 }

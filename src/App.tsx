@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { CaseVault } from './components/CaseVault';
 import { Financials } from './components/Financials';
+import { SmartCalendar } from './components/SmartCalendar';
 import { Settings } from './components/Settings';
 import { AddCaseModal } from './components/AddCaseModal';
 import { useTheme } from './hooks/useTheme';
@@ -20,6 +21,7 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'vault' && <CaseVault onAddCase={() => setIsAddModalOpen(true)} />}
         {activeTab === 'financials' && <Financials />}
+        {activeTab === 'calendar' && <SmartCalendar />}
         {activeTab === 'settings' && <Settings theme={theme} onToggleTheme={toggleTheme} />}
       </main>
 

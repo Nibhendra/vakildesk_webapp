@@ -162,6 +162,36 @@ export function AddCaseModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
+              {/* Client Name */}
+              <div className="space-y-1">
+                <label htmlFor="client-name" className="text-sm font-medium text-slate-300">
+                  Client Name
+                </label>
+                <input
+                  id="client-name"
+                  type="text"
+                  value={formData.clientName || ''}
+                  onChange={e => setFormData({ ...formData, clientName: e.target.value })}
+                  className={inputClass(false)}
+                  placeholder="Rahul Sharma"
+                />
+              </div>
+
+              {/* Client Phone */}
+              <div className="space-y-1">
+                <label htmlFor="client-phone" className="text-sm font-medium text-slate-300">
+                  Client Phone (WhatsApp)
+                </label>
+                <input
+                  id="client-phone"
+                  type="tel"
+                  value={formData.clientPhone || ''}
+                  onChange={e => setFormData({ ...formData, clientPhone: e.target.value })}
+                  className={inputClass(false)}
+                  placeholder="+91 9999999999"
+                />
+              </div>
+
               {/* Court */}
               <div className="space-y-1 md:col-span-2">
                 <label htmlFor="court" className="text-sm font-medium text-slate-300">Court</label>
