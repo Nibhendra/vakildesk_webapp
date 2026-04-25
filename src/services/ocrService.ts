@@ -30,7 +30,7 @@ export const ocrService = {
 
   async extractCaseData(base64Image: string): Promise<ExtractedCaseData> {
     const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY as string;
-    const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.0-flash';
+    const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
 
     if (!geminiApiKey) {
       throw new Error('Gemini API key missing. Add VITE_GOOGLE_GEMINI_API_KEY to your .env file.');
@@ -114,7 +114,7 @@ export const ocrService = {
   // ─── AI Summary (used by AIAnalysisModal) ──────────────────────────────────
   async summarizeLegalDocument(base64Image: string): Promise<string> {
     const geminiApiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY as string;
-    const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.0-flash';
+    const geminiModel = (import.meta.env.VITE_GOOGLE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
 
     if (!geminiApiKey) {
       throw new Error('Gemini API Key is required. Add VITE_GOOGLE_GEMINI_API_KEY to .env');
