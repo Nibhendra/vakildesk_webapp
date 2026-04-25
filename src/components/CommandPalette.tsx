@@ -127,7 +127,7 @@ export function CommandPalette({ onNavigate, onClose, onOpenCase }: CommandPalet
               {results.some(r => r.type === 'nav') && (
                 <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold px-4 pt-2 pb-1">Navigation</p>
               )}
-              {results.filter(r => r.type === 'nav').map((item, i) => {
+              {results.filter(r => r.type === 'nav').map((item) => {
                 const Icon = item.icon;
                 const isActive = results.indexOf(item) === selected;
                 return (
